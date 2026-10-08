@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { CheckCircle2, Search, ShieldAlert, X, XCircle } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { initials } from '../lib/format'
 
 export function PageHeader({ eyebrow, title, subtitle, actions }) {
@@ -64,7 +65,8 @@ export function Modal({ open, title, onClose, children, width = 560 }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
   if (!open) return null
-  return (
+  // Rendu dans <body> : un parent animé (transform) piégerait sinon le position: fixed en bas de page.
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div className="modal" style={{ maxWidth: width }} onMouseDown={(e) => e.stopPropagation()} role="dialog">
         <div className="modal__head">
@@ -75,7 +77,8 @@ export function Modal({ open, title, onClose, children, width = 560 }) {
         </div>
         <div className="modal__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

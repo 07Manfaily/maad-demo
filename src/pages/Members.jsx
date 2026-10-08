@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileSpreadsheet, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { Eye, FileSpreadsheet, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { useStore } from '../data/store'
 import PersonForm from '../components/PersonForm'
 import { Avatar, Confirm, EmptyState, Modal, PageHeader, SearchInput, useToast } from '../components/ui'
@@ -89,10 +89,13 @@ export default function Members() {
                         <StatusBadge c={state.contributions.find((c) => c.memberId === m.id && c.period === current)} />
                       </td>
                       <td className="right nowrap">
-                        <button className="icon-btn" onClick={() => setForm(m)} aria-label="Modifier">
+                        <Link to={`/adherents/${m.id}`} className="icon-btn" aria-label="Voir" title="Voir la fiche">
+                          <Eye size={16} />
+                        </Link>
+                        <button className="icon-btn" onClick={() => setForm(m)} aria-label="Modifier" title="Modifier">
                           <Pencil size={16} />
                         </button>
-                        <button className="icon-btn icon-btn--danger" onClick={() => setDel(m)} aria-label="Supprimer">
+                        <button className="icon-btn icon-btn--danger" onClick={() => setDel(m)} aria-label="Supprimer" title="Supprimer">
                           <Trash2 size={16} />
                         </button>
                       </td>
