@@ -1,0 +1,49 @@
+name: Construire l'APK Android
+
+# Compile l'appli adhérents (mobile/) en APK sur les serveurs GitHub et la
+# range dans la branche privée « apk-build » de ce dépôt (MAAD-demo.apk).
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/demo-react-statique]
+    paths: ['mobile/**', '.github/workflows/apk.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+        working-directory: mobile
+      - run: npx expo prebuild -p android --no-install
+        working-directory: mobile
+        env:
+          CI: 1
+      - run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+        working-directory: mobile/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MAAD-demo-apk
+          path: mobile/android/app/build/outputs/apk/release/app-release.apk
+      - name: Ranger l'APK dans la branche apk-build
+        run: |
+          mkdir out && cp mobile/android/app/build/outputs/apk/release/app-release.apk out/MAAD-demo.apk
+          cd out
+          git init -q -b apk-build
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add MAAD-demo.apk
+          git commit -qm "APK de démo ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk-build
