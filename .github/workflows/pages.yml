@@ -1,4 +1,4 @@
-name: Déployer la démo sur GitHub Pages
+name: Déployer les démos sur GitHub Pages
 
 on:
   push:
@@ -19,11 +19,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            backoffice/package-lock.json
+            mobile/package-lock.json
+      # Back-office (React + Vite) à la racine du site
       - run: npm ci
+        working-directory: backoffice
       - run: npm run build
+        working-directory: backoffice
+      # Appli adhérents (Expo / React Native Web) dans /mobile
+      - run: npm ci
+        working-directory: mobile
+      - run: npx expo export --platform web --output-dir dist
+        working-directory: mobile
+      - run: cp -r mobile/dist backoffice/dist/mobile
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: backoffice/dist
   deploy:
     needs: build
     runs-on: ubuntu-latest

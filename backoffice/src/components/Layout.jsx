@@ -9,6 +9,7 @@ import {
   Palette,
   RotateCcw,
   ShieldCheck,
+  Smartphone,
   UserRound,
   Users,
   Baby,
@@ -60,6 +61,10 @@ export default function Layout() {
           </NavLink>
         </nav>
         <div className="sidebar__foot">
+          <a className="navlink" href="./mobile/" target="_blank" rel="noreferrer">
+            <Smartphone size={16} />
+            <span>Appli mobile adhérents</span>
+          </a>
           <button
             className="navlink navlink--btn"
             onClick={() => {

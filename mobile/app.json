@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "MAAD",
+    "slug": "maad-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F7F2EA",
+    "android": {
+      "package": "ci.maad.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5EFE4",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "name": "MAAD · Mutuelle d'Assistance d'Adzopé",
+      "shortName": "MAAD",
+      "lang": "fr",
+      "themeColor": "#1B1612",
+      "backgroundColor": "#1B1612",
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "experiments": {
+      "baseUrl": "/maad-demo/mobile"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#1B1612"
+        }
+      ]
+    ]
+  }
+}

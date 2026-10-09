@@ -1,45 +1,63 @@
-<p align="center"><img src="public/logo-maad.svg" width="260" alt="MAAD" /></p>
+<p align="center"><img src="backoffice/public/logo-maad.svg" width="260" alt="MAAD" /></p>
 
-# MAAD V2 · Démo web
+# MAAD V2 · Démos
 
-Démonstration statique (React + Vite, données fictives) de la nouvelle version de l'application de gestion de la **Mutuelle d'Assistance d'Adzopé**. Elle reprend toutes les fonctions de l'application Laravel actuelle avec une interface modernisée, et applique la nouvelle règle : **une personne déjà inscrite ne peut pas être inscrite par quelqu'un d'autre**.
+Démonstrations (données fictives) de la nouvelle version de la **Mutuelle d'Assistance d'Adzopé**. La future version reposera sur une API Flask, un back-office React et une appli mobile React Native.
 
-La future version reposera sur Flask (API) et React, avec une application mobile.
+| Dossier | Application | En ligne |
+|---|---|---|
+| [`backoffice/`](backoffice) | Back-office des agents (React + Vite) | https://07manfaily.github.io/maad-demo/ |
+| [`mobile/`](mobile) | Appli des adhérents (React Native / Expo, Android) et sa version web pour iPhone | https://07manfaily.github.io/maad-demo/mobile/ |
 
-## Lancer la démo
+Le workflow `.github/workflows/pages.yml` construit les deux et les publie sur GitHub Pages à chaque push sur `main`.
+
+## Back-office
 
 ```bash
+cd backoffice
 npm install
 npm run dev      # http://localhost:5173
-npm run build    # version statique dans dist/
 ```
 
-Les identifiants sont pré-remplis sur l'écran de connexion. Les modifications sont gardées dans le navigateur ; le bouton « Réinitialiser la démo » remet les données de départ.
-
-Le workflow `.github/workflows/pages.yml` publie la démo sur GitHub Pages à chaque push sur `main` (activer Pages avec la source « GitHub Actions » dans les réglages du dépôt).
-
-## Écrans
-
-- Connexion et profil de l'agent
-- Tableau de bord : totaux, cotisations par mois, statut des adhérents
-- Adhérents : liste, recherche, ajout, modification, suppression, import CSV
-- Fiche adhérent : sous-couverts (5 au maximum), ayants-droit, historique des cotisations
-- Sous-couverts et ayants-droit
-- Cotisations par période : calcul automatique du montant dû, du reste et du statut
-- Contrôle des doublons : vérification d'une personne et journal des inscriptions refusées
+- Connexion et profil de l'agent ; tableau de bord
+- Adhérents : liste, recherche, ajout, modification, suppression, import CSV, fiche détaillée
+- Sous-couverts (5 au maximum) et ayants-droit
+- Cotisations par période : montant dû, reste et statut calculés automatiquement
+- Contrôle des doublons, avec la nouvelle règle : **une personne déjà inscrite ne peut pas être inscrite par quelqu'un d'autre**
 - Identité visuelle : logo et palette
 
-## Pour tester la nouvelle règle
+Pour tester la règle : « Sous-couverts » → « Nouvel sous-couvert » → choisir un adhérent → **Tester la règle**.
 
-Ouvrir « Sous-couverts », puis « Nouvel sous-couvert », choisir un adhérent et cliquer sur **Tester la règle** : le formulaire est pré-rempli avec une personne déjà inscrite chez un autre adhérent, l'alerte s'affiche et l'enregistrement est refusé.
+## Appli mobile des adhérents
 
-## Identité visuelle proposée
+```bash
+cd mobile
+npm install
+npx expo start        # scanner le QR code avec l'appli Expo Go sur Android
+npm run build:web     # version web statique dans mobile/dist
+```
 
-Logo inspiré du tabouret baoulé (`public/logo-maad.svg`, `public/logo-mark.svg`).
+- Connexion par numéro d'adhésion et code PIN (démo : compte pré-rempli, tout numéro du back-office marche avec le code `1234`)
+- Accueil : reste à payer, statut « À jour / Pas à jour », calcul de la cotisation
+- Cotisations mois par mois (payé, partiel, impayé) et paiement d'avance
+- Paiement Mobile Money **simulé** : Wave, Orange Money, MTN MoMo, Moov Money, avec saisie du numéro, récapitulatif, validation (code secret ou confirmation Wave) et reçu
+- Historique des paiements (guichet et appli) et reçus
+- Famille : sous-couverts et ayants-droit
+- Profil, réinitialisation de la démo
+
+Règles reprises du back-office : cotisation mensuelle = tarif (4 500 ou 5 000 FCFA) × nombre de personnes couvertes (l'adhérent et ses sous-couverts) ; un adhérent est à jour quand il ne reste rien à payer.
+
+**iPhone** : la version web est la même appli (React Native Web). Sur ordinateur elle s'affiche dans un cadre de téléphone ; sur iPhone, l'ouvrir dans Safari puis « Partager → Sur l'écran d'accueil ».
+
+**APK Android** : `npx eas-cli@latest build -p android --profile preview` (compte Expo gratuit) produit un fichier `.apk` installable directement, sans passer par le Play Store.
+
+## Identité visuelle
+
+Logo inspiré du tabouret baoulé (`backoffice/public/logo-maad.svg`, `logo-mark.svg`).
 
 | Couleur | Hex | Usage |
 |---|---|---|
-| Ébène | `#1B1612` | textes, barre latérale |
+| Ébène | `#1B1612` | textes, fonds sombres |
 | Iroko | `#6B3F1F` | couleur de marque |
 | Or baoulé | `#C9962B` | accents |
 | Terre rouge | `#B5532A` | alertes, impayés |
