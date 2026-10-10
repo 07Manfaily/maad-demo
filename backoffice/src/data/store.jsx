@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { buildSeed } from './seed'
-import { computeContribution, duplicateMessage, validatePerson } from '../lib/rules'
+import { computeContribution, duplicateMessage, findRegistered, validatePerson } from '../lib/rules'
 
-const KEY = 'maad-demo-v1'
+// Changer de version écarte les données enregistrées par les anciennes démos.
+const VERSION = 2
+const KEY = `maad-demo-v${VERSION}`
 const StoreContext = createContext(null)
 
 function load() {
@@ -10,10 +12,15 @@ function load() {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const s = JSON.parse(raw)
-      if (s.version === 1) return s
+      if (s.version === VERSION) return s
     }
   } catch {
     /* stockage indisponible : on repart des données fictives */
+  }
+  try {
+    for (let v = 1; v < VERSION; v++) localStorage.removeItem(`maad-demo-v${v}`)
+  } catch {
+    /* ignore */
   }
   return buildSeed()
 }
@@ -77,6 +84,9 @@ export function StoreProvider({ children }) {
                 role: duplicate.role,
                 ownerName: duplicate.owner?.name ?? null,
                 ownerNumber: duplicate.owner?.number ?? duplicate.number,
+                radiation: duplicate.radiation
+                  ? { motif: duplicate.radiation.motif, date: duplicate.radiation.date }
+                  : null,
               },
               agent: s.user.name,
             },
@@ -120,6 +130,85 @@ export function StoreProvider({ children }) {
       return { ...s, [col]: s[col].filter((x) => x.id !== id) }
     })
   }, [])
+
+  // Radiation : la personne sort de l'effectif (listes, compteurs, cotisations)
+  // mais reste au registre des radiés, ce qui bloque toute réinscription.
+  // Un adhérent radié emporte ses sous-couverts, ayants-droit et cotisations,
+  // archivés avec lui ; ces proches ne sont pas radiés et peuvent être réinscrits ailleurs.
+  const radiate = useCallback((kind, id, { motif, date, note }) => {
+    setState((s) => {
+      const col = COLLECTION[kind]
+      const person = s[col].find((x) => x.id === id)
+      if (!person) return s
+      const owner = kind === 'member' ? null : s.members.find((m) => m.id === person.memberId)
+      const record = {
+        id: uid('x'),
+        role: kind,
+        person,
+        owner: owner ? { id: owner.id, name: owner.name, number: owner.number } : null,
+        motif,
+        date,
+        note: (note || '').trim(),
+        agent: s.user.name,
+        at: new Date().toISOString(),
+      }
+      if (kind === 'member') {
+        record.insureds = s.insureds.filter((x) => x.memberId === id)
+        record.beneficiaries = s.beneficiaries.filter((x) => x.memberId === id)
+        record.contributions = s.contributions.filter((x) => x.memberId === id)
+        return {
+          ...s,
+          members: s.members.filter((m) => m.id !== id),
+          insureds: s.insureds.filter((x) => x.memberId !== id),
+          beneficiaries: s.beneficiaries.filter((x) => x.memberId !== id),
+          contributions: s.contributions.filter((x) => x.memberId !== id),
+          radiations: [record, ...s.radiations],
+        }
+      }
+      return { ...s, [col]: s[col].filter((x) => x.id !== id), radiations: [record, ...s.radiations] }
+    })
+  }, [])
+
+  // Annule une radiation (erreur de saisie). Les proches réinscrits entre-temps ailleurs ne reviennent pas.
+  const restoreRadiation = useCallback(
+    (radId) => {
+      const r = state.radiations.find((x) => x.id === radId)
+      if (!r) return { ok: false, error: 'Radiation introuvable.' }
+      const base = { ...state, radiations: state.radiations.filter((x) => x.id !== radId) }
+      if (r.role === 'member') {
+        if (base.members.some((m) => m.number === r.person.number))
+          return { ok: false, error: `Le n° d’adhésion ${r.person.number} a été réattribué entre-temps.` }
+      } else if (!base.members.some((m) => m.id === r.person.memberId)) {
+        return { ok: false, error: `L’adhérent ${r.owner?.name ?? ''} ne fait plus partie de l’effectif.` }
+      }
+      if (findRegistered(base, r.person)) return { ok: false, error: `${r.person.name} a été réinscrit(e) entre-temps.` }
+      const col = COLLECTION[r.role]
+      const skipped = []
+      const keep = (list) =>
+        (list || []).filter((p) => {
+          const taken = findRegistered(base, p)
+          if (taken) skipped.push(p.name)
+          return !taken
+        })
+      const ins = r.role === 'member' ? keep(r.insureds) : []
+      const ben = r.role === 'member' ? keep(r.beneficiaries) : []
+      setState((s) => ({
+        ...s,
+        radiations: s.radiations.filter((x) => x.id !== radId),
+        [col]: [...s[col], r.person],
+        insureds: r.role === 'member' ? [...s.insureds, ...ins] : r.role === 'insured' ? [...s.insureds, r.person] : s.insureds,
+        beneficiaries:
+          r.role === 'member'
+            ? [...s.beneficiaries, ...ben]
+            : r.role === 'beneficiary'
+              ? [...s.beneficiaries, r.person]
+              : s.beneficiaries,
+        contributions: r.role === 'member' ? [...s.contributions, ...(r.contributions || [])] : s.contributions,
+      }))
+      return { ok: true, skipped }
+    },
+    [state],
+  )
 
   const addPeriod = useCallback(
     (period) => {
@@ -174,9 +263,25 @@ export function StoreProvider({ children }) {
       saveContribution,
       updateUser,
       importMembers,
+      radiate,
+      restoreRadiation,
       reset,
     }),
-    [state, authed, login, logout, savePerson, removePerson, addPeriod, saveContribution, updateUser, importMembers, reset],
+    [
+      state,
+      authed,
+      login,
+      logout,
+      savePerson,
+      removePerson,
+      addPeriod,
+      saveContribution,
+      updateUser,
+      importMembers,
+      radiate,
+      restoreRadiation,
+      reset,
+    ],
   )
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

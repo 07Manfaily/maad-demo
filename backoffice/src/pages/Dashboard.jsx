@@ -64,7 +64,7 @@ export default function Dashboard() {
       />
 
       <div className="stats">
-        <StatCard icon={Users} label="Adhérents" value={shortNumber(state.members.length)} hint="membres titulaires" tone="or" />
+        <StatCard icon={Users} label="Adhérents" value={shortNumber(state.members.length)} hint={state.radiations.length ? `hors ${state.radiations.length} radié(s)` : 'membres titulaires'} tone="or" />
         <StatCard icon={Baby} label="Sous-couverts" value={shortNumber(state.insureds.length)} hint="5 au maximum par adhérent" tone="indigo" />
         <StatCard icon={HeartHandshake} label="Ayants-droit" value={shortNumber(state.beneficiaries.length)} hint="bénéficiaires déclarés" tone="terre" />
         <StatCard

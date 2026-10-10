@@ -6,11 +6,11 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Palette,
   RotateCcw,
   ShieldCheck,
   Smartphone,
   UserRound,
+  UserX,
   Users,
   Baby,
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const NAV = [
   { to: '/sous-couverts', label: 'Sous-couverts', icon: Baby },
   { to: '/ayants-droit', label: 'Ayants-droit', icon: HeartHandshake },
   { to: '/cotisations', label: 'Cotisations', icon: HandCoins },
+  { to: '/radies', label: 'Radiés', icon: UserX },
   { to: '/doublons', label: 'Contrôle des doublons', icon: ShieldCheck },
 ]
 
@@ -48,16 +49,15 @@ export default function Layout() {
               {to === '/doublons' && state.rejections.length > 0 && (
                 <em className="navlink__count">{state.rejections.length}</em>
               )}
+              {to === '/radies' && state.radiations.length > 0 && (
+                <em className="navlink__count navlink__count--muted">{state.radiations.length}</em>
+              )}
             </NavLink>
           ))}
           <span className="sidebar__section">Compte</span>
           <NavLink to="/profil" className="navlink">
             <UserRound size={18} />
             <span>Mon profil</span>
-          </NavLink>
-          <NavLink to="/identite" className="navlink">
-            <Palette size={18} />
-            <span>Identité visuelle</span>
           </NavLink>
         </nav>
         <div className="sidebar__foot">

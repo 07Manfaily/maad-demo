@@ -151,14 +151,67 @@ export function buildSeed() {
     },
   ]
 
+  // Radiés fictifs : quelques adhérents (décès, vol, impayés, fraude) et des proches décédés.
+  // Ils sortent de l'effectif mais restent au registre.
+  const busy = new Set([owner0.id, other.id, members[5].id, members[9].id])
+  const pool = members.filter((m) => !busy.has(m.id))
+  const radiations = []
+  let xid = 1
+  const out = (kind, person, motif, date, note) => {
+    const owner = kind === 'member' ? null : members.find((m) => m.id === person.memberId)
+    const rec = {
+      id: `x${xid++}`,
+      role: kind,
+      person,
+      owner: owner ? { id: owner.id, name: owner.name, number: owner.number } : null,
+      motif,
+      date,
+      note,
+      agent: 'Admin MAAD',
+      at: `${date}T09:30:00`,
+    }
+    if (kind === 'member') {
+      rec.insureds = insureds.filter((x) => x.memberId === person.id)
+      rec.beneficiaries = beneficiaries.filter((x) => x.memberId === person.id)
+      // Plus de cotisation après la date de radiation.
+      rec.contributions = contributions.filter((x) => x.memberId === person.id && x.period <= date.slice(0, 7))
+    }
+    radiations.push(rec)
+  }
+  const [dead1, thief, unpaid, fraud, dead2] = [pool[10], pool[17], pool[24], pool[29], pool[33]]
+  out('member', dead1, 'deces', '2026-05-18', 'Acte de décès transmis par la famille.')
+  out('member', thief, 'vol', '2026-06-09', 'Détournement de cotisations collectées pour le groupe de quartier.')
+  out('member', unpaid, 'impayes', '2026-07-31', 'Aucune cotisation depuis plus de trois mois malgré deux relances.')
+  out('member', fraud, 'fraude', '2026-08-22', 'Sous-couvert déclaré sous une fausse date de naissance.')
+  out('member', dead2, 'deces', '2026-09-03', '')
+  const gone = new Set([dead1, thief, unpaid, fraud, dead2].map((m) => m.id))
+  const deadInsured = insureds.find((x) => !gone.has(x.memberId) && !busy.has(x.memberId) && x !== ins0)
+  out('insured', deadInsured, 'deces', '2026-08-11', 'Décès à la suite d’une longue maladie.')
+  const deadBenef = beneficiaries.filter((x) => !gone.has(x.memberId) && !busy.has(x.memberId))[6]
+  out('beneficiary', deadBenef, 'deces', '2026-09-20', '')
+
+  // Une tentative de réinscription d'un radié, refusée par la règle.
+  rejections.unshift({
+    id: 'r3',
+    at: '2026-10-02T11:15:00',
+    attempted: { name: thief.name, birthday: thief.birthday, role: 'member' },
+    by: null,
+    found: { role: 'member', ownerName: null, ownerNumber: thief.number, radiation: { motif: 'vol', date: '2026-06-09' } },
+    agent: 'Admin MAAD',
+  })
+
+  const outIds = new Set([...gone, deadInsured.id, deadBenef.id])
+  const active = (x) => !outIds.has(x.id) && !gone.has(x.memberId)
+
   return {
-    version: 1,
+    version: 2,
     user: { name: 'Admin MAAD', email: 'admin@maad.ci' },
-    members,
-    insureds,
-    beneficiaries,
+    members: members.filter(active),
+    insureds: insureds.filter(active),
+    beneficiaries: beneficiaries.filter(active),
     periods: [...PERIODS],
-    contributions,
+    contributions: contributions.filter(active),
     rejections,
+    radiations: radiations.sort((a, b) => b.date.localeCompare(a.date)),
   }
 }

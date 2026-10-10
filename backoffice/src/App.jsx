@@ -11,7 +11,7 @@ import Beneficiaries from './pages/Beneficiaries'
 import Contributions from './pages/Contributions'
 import Duplicates from './pages/Duplicates'
 import Profile from './pages/Profile'
-import Identity from './pages/Identity'
+import Radiations from './pages/Radiations'
 
 function Guarded() {
   const { authed } = useStore()
@@ -25,9 +25,9 @@ function Guarded() {
         <Route path="sous-couverts" element={<Insureds />} />
         <Route path="ayants-droit" element={<Beneficiaries />} />
         <Route path="cotisations" element={<Contributions />} />
+        <Route path="radies" element={<Radiations />} />
         <Route path="doublons" element={<Duplicates />} />
         <Route path="profil" element={<Profile />} />
-        <Route path="identite" element={<Identity />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

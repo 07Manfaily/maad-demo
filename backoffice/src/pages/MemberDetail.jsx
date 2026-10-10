@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Baby, CalendarDays, HeartHandshake, IdCard, Pencil, Phone, Plus, Trash2 } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, Baby, CalendarDays, HeartHandshake, IdCard, Pencil, Phone, Plus, Trash2, UserX } from 'lucide-react'
 import { memberStats, useStore } from '../data/store'
 import PersonForm from '../components/PersonForm'
+import RadiationModal from '../components/RadiationForm'
 import { Avatar, Confirm, EmptyState, Modal, useToast } from '../components/ui'
 import { ageFrom, fcfa, formatDate, formatPeriod, formatPhone } from '../lib/format'
 import { MAX_INSUREDS } from '../lib/rules'
@@ -14,8 +15,21 @@ export default function MemberDetail() {
   const toast = useToast()
   const [form, setForm] = useState(null) // {kind, initial}
   const [del, setDel] = useState(null)
+  const [rad, setRad] = useState(null) // {kind, person}
+  const navigate = useNavigate()
   const m = state.members.find((x) => x.id === id)
-  if (!m) return <EmptyState title="Adhérent introuvable" />
+  if (!m) {
+    const r = state.radiations.find((x) => x.role === 'member' && x.person.id === id)
+    return (
+      <EmptyState title={r ? `${r.person.name} a été radié(e)` : 'Adhérent introuvable'}>
+        {r && (
+          <Link to="/radies" className="link">
+            Voir la liste des radiés
+          </Link>
+        )}
+      </EmptyState>
+    )
+  }
 
   const { insureds, beneficiaries, contributions } = memberStats(state, m.id)
   const current = state.periods[state.periods.length - 1]
@@ -44,6 +58,9 @@ export default function MemberDetail() {
           <StatusBadge c={contributions.find((c) => c.period === current)} />
           <button className="btn btn--ghost btn--light" onClick={() => setForm({ kind: 'member', initial: m })}>
             <Pencil size={16} /> Modifier
+          </button>
+          <button className="btn btn--ghost btn--light" onClick={() => setRad({ kind: 'member', person: m })}>
+            <UserX size={16} /> Radier
           </button>
         </div>
       </section>
@@ -80,7 +97,8 @@ export default function MemberDetail() {
             <ul className="people">
               {insureds.map((p) => (
                 <PersonRow key={p.id} p={p} sub={`${p.lien || 'Sous-couvert'} · ${ageFrom(p.birthday)} ans · code ${p.code}`}
-                  onEdit={() => setForm({ kind: 'insured', initial: p })} onDelete={() => setDel({ kind: 'insured', p })} />
+                  onEdit={() => setForm({ kind: 'insured', initial: p })} onDelete={() => setDel({ kind: 'insured', p })}
+                  onRadiate={() => setRad({ kind: 'insured', person: p })} />
               ))}
             </ul>
           )}
@@ -102,7 +120,8 @@ export default function MemberDetail() {
             <ul className="people">
               {beneficiaries.map((p) => (
                 <PersonRow key={p.id} p={p} sub={`${p.lien} · +225 ${formatPhone(p.phone)}`}
-                  onEdit={() => setForm({ kind: 'beneficiary', initial: p })} onDelete={() => setDel({ kind: 'beneficiary', p })} />
+                  onEdit={() => setForm({ kind: 'beneficiary', initial: p })} onDelete={() => setDel({ kind: 'beneficiary', p })}
+                  onRadiate={() => setRad({ kind: 'beneficiary', person: p })} />
               ))}
             </ul>
           )}
@@ -158,11 +177,19 @@ export default function MemberDetail() {
           setDel(null)
         }}
       />
+      <RadiationModal
+        target={rad}
+        onClose={() => setRad(null)}
+        onDone={() => {
+          if (rad.kind === 'member') navigate('/radies')
+          setRad(null)
+        }}
+      />
     </>
   )
 }
 
-function PersonRow({ p, sub, onEdit, onDelete }) {
+function PersonRow({ p, sub, onEdit, onDelete, onRadiate }) {
   return (
     <li>
       <Avatar name={p.name} size={38} />
@@ -172,6 +199,7 @@ function PersonRow({ p, sub, onEdit, onDelete }) {
       </div>
       <div className="people__actions">
         <button className="icon-btn" onClick={onEdit} aria-label="Modifier"><Pencil size={15} /></button>
+        <button className="icon-btn icon-btn--danger" onClick={onRadiate} aria-label="Radier" title="Radier (décès, vol…)"><UserX size={15} /></button>
         <button className="icon-btn icon-btn--danger" onClick={onDelete} aria-label="Retirer"><Trash2 size={15} /></button>
       </div>
     </li>

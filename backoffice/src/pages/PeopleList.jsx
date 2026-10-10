@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, UserX } from 'lucide-react'
 import { useStore } from '../data/store'
 import PersonForm from '../components/PersonForm'
+import RadiationModal from '../components/RadiationForm'
 import { Avatar, Confirm, EmptyState, Modal, PageHeader, SearchInput, useToast } from '../components/ui'
 import { ageFrom, formatDate, formatPhone } from '../lib/format'
 
@@ -13,6 +14,7 @@ export default function PeopleList({ kind }) {
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null)
   const [del, setDel] = useState(null)
+  const [rad, setRad] = useState(null)
   const isInsured = kind === 'insured'
   const list = isInsured ? state.insureds : state.beneficiaries
   const label = isInsured ? 'sous-couvert' : 'ayant-droit'
@@ -90,7 +92,15 @@ export default function PeopleList({ kind }) {
                       <button className="icon-btn" onClick={() => setForm(p)} aria-label="Modifier">
                         <Pencil size={16} />
                       </button>
-                      <button className="icon-btn icon-btn--danger" onClick={() => setDel(p)} aria-label="Supprimer">
+                      <button
+                        className="icon-btn icon-btn--danger"
+                        onClick={() => setRad({ kind, person: p })}
+                        aria-label="Radier"
+                        title="Radier (décès, vol…)"
+                      >
+                        <UserX size={16} />
+                      </button>
+                      <button className="icon-btn icon-btn--danger" onClick={() => setDel(p)} aria-label="Supprimer" title="Supprimer (erreur de saisie)">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -110,6 +120,7 @@ export default function PeopleList({ kind }) {
           />
         )}
       </Modal>
+      <RadiationModal target={rad} onClose={() => setRad(null)} onDone={() => setRad(null)} />
       <Confirm
         open={!!del}
         title={`Supprimer ce ${label} ?`}

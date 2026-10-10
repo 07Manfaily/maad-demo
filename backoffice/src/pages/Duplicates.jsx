@@ -4,7 +4,7 @@ import { BadgeCheck, Fingerprint, ShieldAlert, ShieldCheck, Users } from 'lucide
 import { useStore } from '../data/store'
 import { EmptyState, Field, PageHeader } from '../components/ui'
 import { formatDate } from '../lib/format'
-import { duplicateMessage, findRegistered, ROLE_LABELS } from '../lib/rules'
+import { duplicateMessage, findRegistered, motifOf, ROLE_LABELS } from '../lib/rules'
 
 export default function Duplicates() {
   const { state } = useStore()
@@ -12,7 +12,7 @@ export default function Duplicates() {
   const set = (k) => (e) => setProbe((p) => ({ ...p, [k]: e.target.value }))
   const ready = probe.idNumber || (probe.name && probe.birthday)
   const found = useMemo(() => (ready ? findRegistered(state, probe) : null), [state, probe, ready])
-  const total = state.members.length + state.insureds.length + state.beneficiaries.length
+  const total = state.members.length + state.insureds.length + state.beneficiaries.length + state.radiations.length
 
   return (
     <>
@@ -26,7 +26,10 @@ export default function Duplicates() {
         <div className="rule-card">
           <Users size={22} />
           <strong>Un seul registre</strong>
-          <p>Adhérents, sous-couverts et ayants-droit sont vérifiés ensemble : {total} personnes aujourd’hui.</p>
+          <p>
+            Adhérents, sous-couverts, ayants-droit et radiés sont vérifiés ensemble : {total} personnes aujourd’hui, dont{' '}
+            {state.radiations.length} radiées.
+          </p>
         </div>
         <div className="rule-card">
           <Fingerprint size={22} />
@@ -66,11 +69,17 @@ export default function Duplicates() {
               <div className="dup-alert" role="status">
                 <ShieldAlert size={22} />
                 <div>
-                  <strong>Déjà inscrite</strong>
+                  <strong>{found.radiation ? 'Personne radiée' : 'Déjà inscrite'}</strong>
                   <p>{duplicateMessage(found)}</p>
-                  <Link className="link" to={`/adherents/${found.owner?.id ?? found.id}`}>
-                    Ouvrir la fiche de l’adhérent
-                  </Link>
+                  {found.radiation ? (
+                    <Link className="link" to="/radies">
+                      Voir la liste des radiés
+                    </Link>
+                  ) : (
+                    <Link className="link" to={`/adherents/${found.owner?.id ?? found.id}`}>
+                      Ouvrir la fiche de l’adhérent
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : (
@@ -103,8 +112,14 @@ export default function Duplicates() {
                     <strong>{r.attempted.name}</strong>
                     <p>
                       Tentative comme {ROLE_LABELS[r.attempted.role]}
-                      {r.by ? ` pour ${r.by.name} (N° ${r.by.number})` : ''}. Déjà {ROLE_LABELS[r.found.role]}
-                      {r.found.ownerName ? ` de ${r.found.ownerName} (N° ${r.found.ownerNumber})` : ` (N° ${r.found.ownerNumber})`}.
+                      {r.by ? ` pour ${r.by.name} (N° ${r.by.number})` : ''}.{' '}
+                      {r.found.radiation
+                        ? `Radié(e) le ${formatDate(r.found.radiation.date)}, motif : ${motifOf(r.found.radiation.motif).label.toLowerCase()}.`
+                        : `Déjà ${ROLE_LABELS[r.found.role]}${
+                            r.found.ownerName
+                              ? ` de ${r.found.ownerName} (N° ${r.found.ownerNumber})`
+                              : ` (N° ${r.found.ownerNumber})`
+                          }.`}
                     </p>
                     <small>
                       {formatDate(r.at)} · {r.agent}

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, FileSpreadsheet, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { Eye, FileSpreadsheet, Pencil, Plus, Trash2, Upload, UserX } from 'lucide-react'
 import { useStore } from '../data/store'
 import PersonForm from '../components/PersonForm'
+import RadiationModal from '../components/RadiationForm'
 import { Avatar, Confirm, EmptyState, Modal, PageHeader, SearchInput, useToast } from '../components/ui'
 import { formatDate, formatPhone } from '../lib/format'
 import { findRegistered } from '../lib/rules'
@@ -14,6 +15,7 @@ export default function Members() {
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null) // null | {} | member
   const [del, setDel] = useState(null)
+  const [rad, setRad] = useState(null)
   const [importing, setImporting] = useState(false)
   const current = state.periods[state.periods.length - 1]
 
@@ -29,7 +31,9 @@ export default function Members() {
       <PageHeader
         eyebrow="Gestion"
         title="Adhérents"
-        subtitle={`${state.members.length} adhérents titulaires d’un numéro d’adhésion.`}
+        subtitle={`${state.members.length} adhérents dans l’effectif${
+          state.radiations.length ? `, hors ${state.radiations.length} radié(s)` : ''
+        }.`}
         actions={
           <>
             <button className="btn btn--ghost" onClick={() => setImporting(true)}>
@@ -95,7 +99,10 @@ export default function Members() {
                         <button className="icon-btn" onClick={() => setForm(m)} aria-label="Modifier" title="Modifier">
                           <Pencil size={16} />
                         </button>
-                        <button className="icon-btn icon-btn--danger" onClick={() => setDel(m)} aria-label="Supprimer" title="Supprimer">
+                        <button className="icon-btn icon-btn--danger" onClick={() => setRad({ kind: 'member', person: m })} aria-label="Radier" title="Radier (décès, vol…)">
+                          <UserX size={16} />
+                        </button>
+                        <button className="icon-btn icon-btn--danger" onClick={() => setDel(m)} aria-label="Supprimer" title="Supprimer (erreur de saisie)">
                           <Trash2 size={16} />
                         </button>
                       </td>
@@ -122,6 +129,7 @@ export default function Members() {
           setDel(null)
         }}
       />
+      <RadiationModal target={rad} onClose={() => setRad(null)} onDone={() => setRad(null)} />
       <ImportModal open={importing} onClose={() => setImporting(false)} />
     </>
   )

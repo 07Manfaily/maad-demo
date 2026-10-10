@@ -2,7 +2,7 @@
 // d'unicité : une personne déjà inscrite (comme adhérent, sous-couvert ou
 // ayant-droit) ne peut pas être inscrite une seconde fois, par qui que ce soit.
 
-import { ageFrom } from './format'
+import { ageFrom, formatDate } from './format'
 
 export const MAX_INSUREDS = 5 // InsuredController::store
 export const PRICES = [4500, 5000] // ContributionForm, champ "price"
@@ -12,6 +12,19 @@ export const ROLE_LABELS = {
   insured: 'sous-couvert',
   beneficiary: 'ayant-droit',
 }
+
+// Motifs de radiation. Une personne radiée sort de l'effectif mais reste au
+// registre : elle ne peut pas être réinscrite, par personne.
+export const MOTIFS = [
+  { id: 'deces', label: 'Décès', tone: 'ebene' },
+  { id: 'vol', label: 'Vol', tone: 'terre' },
+  { id: 'fraude', label: 'Fraude ou fausse déclaration', tone: 'terre' },
+  { id: 'impayes', label: 'Cotisations impayées', tone: 'or' },
+  { id: 'faute', label: 'Faute grave', tone: 'iroko' },
+  { id: 'demission', label: 'Démission', tone: 'indigo' },
+  { id: 'autre', label: 'Autre motif', tone: 'neutral' },
+]
+export const motifOf = (id) => MOTIFS.find((m) => m.id === id) ?? MOTIFS[MOTIFS.length - 1]
 
 // Normalise un nom pour comparer « Kouassi  Akissi » et « KOUASSI akissi ».
 export const normalizeName = (s = '') =>
@@ -27,13 +40,14 @@ export const normalizeName = (s = '') =>
 
 export const normalizeId = (s = '') => s.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
 
-// Toutes les personnes déjà inscrites, quel que soit leur rôle.
+// Toutes les personnes déjà inscrites, quel que soit leur rôle, radiés compris.
 export function allPeople(state) {
   const byId = Object.fromEntries(state.members.map((m) => [m.id, m]))
   return [
     ...state.members.map((p) => ({ ...p, role: 'member', owner: null })),
     ...state.insureds.map((p) => ({ ...p, role: 'insured', owner: byId[p.memberId] })),
     ...state.beneficiaries.map((p) => ({ ...p, role: 'beneficiary', owner: byId[p.memberId] })),
+    ...(state.radiations || []).map((r) => ({ ...r.person, role: r.role, owner: r.owner, radiation: r })),
   ]
 }
 
@@ -52,6 +66,10 @@ export function findRegistered(state, { name, birthday, idNumber }, exclude = nu
 }
 
 export function duplicateMessage(found) {
+  if (found.radiation) {
+    const r = found.radiation
+    return `${found.name} a été radié(e) de la mutuelle le ${formatDate(r.date)} (motif : ${motifOf(r.motif).label.toLowerCase()}). Une personne radiée ne peut pas être réinscrite.`
+  }
   const role = ROLE_LABELS[found.role]
   const where = found.owner
     ? ` de l’adhérent ${found.owner.name} (N° ${found.owner.number})`
